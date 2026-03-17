@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Dashboard | Extrator PDF</title>
+    <!-- Google Fonts: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-wallet gradient-icon"></i>
+                <h2>FinSight</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active"><i class="fa-solid fa-chart-pie"></i> Visualização Geral</a>
+                <a href="#" class="nav-item"><i class="fa-solid fa-money-bill-transfer"></i> Transações</a>
+                <a href="#" class="nav-item"><i class="fa-solid fa-bullseye"></i> Metas</a>
+                <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Configurações</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Eduardo+Bianco&background=0D8ABC&color=fff" alt="User" class="avatar">
+                    <div class="user-info">
+                        <span class="name">Eduardo Bianco</span>
+                        <span class="plan">Premium User</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="greeting">
+                    <h1>Dashboard Financeiro</h1>
+                    <p>Aqui está o resumo das suas despesas e receitas.</p>
+                </div>
+                <div class="actions" style="display: flex; align-items: center; gap: 16px;">
+                    <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-filter text-secondary"></i>
+                        <select id="monthFilter" class="btn" style="background-color: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color);">
+                            <option value="">Todo o Período</option>
+                            <!-- JS vai popular os meses/anos disponíveis -->
+                        </select>
+                    </div>
+                    <button class="btn btn-icon"><i class="fa-regular fa-bell"></i></button>
+                    <button class="btn btn-primary"><i class="fa-solid fa-upload"></i> Novo PDF</button>
+                </div>
+            </header>
+
+            <!-- Dashboard Widgets -->
+            <div class="dashboard-grid">
+                <!-- Evolution Chart -->
+                <div class="card col-span-2">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-chart-line text-purple"></i> Evolução no Tempo</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="evolucaoChart" class="chart-wrapper"></div>
+                        <div class="loader" id="loaderEvolucao"></div>
+                    </div>
+                </div>
+
+                <!-- Sankey Chart -->
+                <div class="card col-span-2">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-shuffle text-cyan"></i> Fluxo de Renda e Despesas</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="sankey_chart" class="chart-wrapper" style="height: 400px;"></div>
+                        <div class="loader" id="loaderSankey"></div>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions -->
+                <div class="card col-span-2">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-list-ul text-green"></i> Despesas Recentes</h3>
+                    </div>
+                    <div class="card-body table-responsive">
+                        <table id="despesasTable" class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th>Categoria</th>
+                                    <th>Origem</th>
+                                    <th>Valor (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS vai popular -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals or overlays could go here -->
+    
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

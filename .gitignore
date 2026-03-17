@@ -1,0 +1,24 @@
+# Environments
+venv/
+env/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+*.db
+*.sqlite3
+despesas.db
+
+# Invoices / Statements (Personal Data)
+faturas/
+extratos/
+faturas_processadas/
+extratos_processadas/
+planilhas/
+
+# OS Files
+.DS_Store
