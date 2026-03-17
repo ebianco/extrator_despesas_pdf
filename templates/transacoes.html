@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transações | FinSight</title>
+    <!-- Google Fonts: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* CSS adicional específico para a tabela de transações */
+        .toolbar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: var(--transition-fast);
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .filter-select {
+            padding: 12px 16px;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .pagination-info {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-page {
+            padding: 8px 12px;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .btn-page:hover:not(:disabled) {
+            background-color: var(--bg-surface-hover);
+        }
+
+        .btn-page:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-wallet gradient-icon"></i>
+                <h2>FinSight</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('index') }}" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Visualização Geral</a>
+                <a href="{{ url_for('transacoes') }}" class="nav-item active"><i class="fa-solid fa-money-bill-transfer"></i> Transações</a>
+                <a href="#" class="nav-item" onclick="alert('Em breve: Aba de Metas')"><i class="fa-solid fa-bullseye"></i> Metas</a>
+                <a href="#" class="nav-item" onclick="alert('Em breve: Configurações')"><i class="fa-solid fa-gear"></i> Configurações</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Eduardo+Bianco&background=0D8ABC&color=fff" alt="User" class="avatar">
+                    <div class="user-info">
+                        <span class="name">Eduardo Bianco</span>
+                        <span class="plan">Premium User</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="greeting">
+                    <h1>Sujas Transações</h1>
+                    <p>Pesquise, filtre e audite todas as suas movimentações.</p>
+                </div>
+            </header>
+
+            <!-- Transactions Panel -->
+            <div class="card">
+                <div class="card-body">
+                    
+                    <!-- Toolbar (Filters and Search) -->
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" class="search-input" placeholder="Buscar por descrição...">
+                        </div>
+                        
+                        <select id="categoriaFilter" class="filter-select">
+                            <option value="">Todas Categorias</option>
+                            <option value="Refeição">Refeição</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Saúde">Saúde</option>
+                            <option value="Lazer">Lazer</option>
+                            <option value="Casa">Casa</option>
+                            <option value="Vestuário">Vestuário</option>
+                            <option value="Cuidados Pessoais">Cuidados Pessoais</option>
+                            <option value="Bens de consumo">Bens de Consumo</option>
+                            <option value="Pet">Pet</option>
+                            <option value="TBD">Pendentes (TBD)</option>
+                        </select>
+                        
+                        <select id="origemFilter" class="filter-select">
+                            <option value="">Todas Origens</option>
+                            <option value="Cartão de Crédito">Cartão de Crédito</option>
+                            <option value="Extrato Bancário">Extrato Bancário</option>
+                        </select>
+
+                        <select id="monthFilter" class="filter-select">
+                            <option value="">Todo o Período</option>
+                        </select>
+                    </div>
+
+                    <!-- Loader -->
+                    <div class="loader" id="tableLoader" style="position:relative; transform:none; left:auto; top:auto; margin:40px auto; display:none;"></div>
+
+                    <!-- Table -->
+                    <div class="table-responsive">
+                        <table id="transacoesTable" class="modern-table" style="display:none;">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th>Categoria</th>
+                                    <th>Origem</th>
+                                    <th>Valor (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS vai popular via AJAX -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination" id="paginationSection" style="display:none;">
+                        <div class="pagination-info" id="paginationInfo">Carregando...</div>
+                        <div class="pagination-controls">
+                            <button id="btnPrev" class="btn-page"><i class="fa-solid fa-chevron-left"></i> Anterior</button>
+                            <button id="btnNext" class="btn-page">Próximo <i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/transacoes.js') }}"></script>
+</body>
+</html>

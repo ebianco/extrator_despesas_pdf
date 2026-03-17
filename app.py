@@ -9,6 +9,11 @@ def index():
     """Serve a página principal do dashboard."""
     return render_template('index.html')
 
+@app.route('/transacoes')
+def transacoes():
+    """Serve a página de listagem de transações completas."""
+    return render_template('transacoes.html')
+
 @app.route('/api/gastos_por_categoria')
 def gastos_por_categoria():
     """Fornece dados de gastos agregados por categoria."""
@@ -175,6 +180,75 @@ def sankey_data():
         sankey_links.append(['Renda', row['categoria'], -row['total']])
 
     return jsonify(sankey_links)
+
+@app.route('/api/transacoes')
+def listar_transacoes():
+    """Fornece a lista paginada e filtrada de todas as transações."""
+    from flask import request
+    
+    # Parâmetros de Paginação
+    page = int(request.args.get('page', 1))
+    limit = int(request.args.get('limit', 50))
+    offset = (page - 1) * limit
+    
+    # Parâmetros de Filtro
+    search = request.args.get('search', '').lower()
+    mes = request.args.get('mes')
+    ano = request.args.get('ano')
+    categoria = request.args.get('categoria')
+    origem = request.args.get('origem') # 'Cartão de Crédito' ou 'Extrato Bancário'
+
+    conn = get_db_connection()
+    
+    base_query = """
+        WITH todas_movimentacoes AS (
+            SELECT id, data, descricao, categoria, valor, 'Extrato Bancário' as origem FROM movimentacoes_bancarias
+            UNION ALL
+            SELECT id, data, descricao, categoria, -valor as valor, 'Cartão de Crédito' as origem FROM despesas_cartao
+        )
+        SELECT * FROM todas_movimentacoes
+        WHERE 1=1
+    """
+    
+    params = []
+    
+    if search:
+        base_query += " AND LOWER(descricao) LIKE ?"
+        params.append(f"%{search}%")
+    if ano:
+        base_query += " AND strftime('%Y', data) = ?"
+        params.append(ano)
+    if mes:
+        base_query += " AND strftime('%m', data) = ?"
+        params.append(mes)
+    if categoria:
+        if categoria.upper() == 'TBD':
+            base_query += " AND (categoria IS NULL OR categoria = 'TBD')"
+        else:
+            base_query += " AND categoria = ?"
+            params.append(categoria)
+    if origem:
+        base_query += " AND origem = ?"
+        params.append(origem)
+
+    # Conta o total de registros com os filtros aplicados
+    count_query = f"SELECT COUNT(*) as total FROM ({base_query})"
+    total_records = conn.execute(count_query, params).fetchone()['total']
+    
+    # Aplica ordenação e paginação
+    data_query = base_query + " ORDER BY data DESC LIMIT ? OFFSET ?"
+    params.extend([int(limit), int(offset)])
+    
+    df = pd.read_sql_query(data_query, conn, params=params)
+    conn.close()
+
+    return jsonify({
+        'data': df.to_dict(orient='records'),
+        'total': total_records,
+        'page': page,
+        'limit': limit,
+        'total_pages': (total_records + limit - 1) // limit
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)
