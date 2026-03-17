@@ -76,28 +76,35 @@ def analisar_e_atualizar_despesas():
     """Busca despesas não classificadas, aplica a classificação e atualiza o banco de dados."""
     create_tables()  # Garante que a tabela e as colunas existem
     conn = get_db_connection()
-    # Busca apenas despesas que ainda não foram classificadas
-    df = pd.read_sql_query("SELECT id, descricao FROM despesas_cartao WHERE tipo IS NULL OR tipo = 'TBD'", conn)
-
-    if df.empty:
-        print("Nenhuma despesa nova para analisar.")
-        conn.close()
-        return
-
-    print(f"Analisando {len(df)} novas despesas...")
-    # Aplica a função de classificação
-    df[['tipo', 'categoria']] = df['descricao'].apply(lambda x: pd.Series(classificar_despesa(x)))
-
-    cursor = conn.cursor()
-    for index, row in df.iterrows():
-        cursor.execute(
-            "UPDATE despesas_cartao SET tipo = ?, categoria = ? WHERE id = ?",
-            (row['tipo'], row['categoria'], row['id'])
-        )
     
-    conn.commit()
+    tabelas = [
+        ('despesas_cartao', 'id, descricao', 'tipo IS NULL OR tipo = \'TBD\''),
+        ('movimentacoes_bancarias', 'id, descricao', 'categoria IS NULL OR categoria = \'TBD\'')
+    ]
+
+    for tabela, colunas, condicao in tabelas:
+        df = pd.read_sql_query(f"SELECT {colunas} FROM {tabela} WHERE {condicao}", conn)
+
+        if df.empty:
+            print(f"Nenhuma despesa nova para analisar em {tabela}.")
+            continue
+
+        print(f"Analisando {len(df)} novas despesas em {tabela}...")
+        
+        # Aplica a função de classificação
+        df[['tipo', 'categoria']] = df['descricao'].apply(lambda x: pd.Series(classificar_despesa(x)))
+
+        cursor = conn.cursor()
+        for index, row in df.iterrows():
+            cursor.execute(
+                f"UPDATE {tabela} SET tipo = ?, categoria = ? WHERE id = ?",
+                (row['tipo'], row['categoria'], row['id'])
+            )
+        
+        conn.commit()
+        print(f"Análise de {tabela} concluída. {len(df)} registros atualizados.")
+
     conn.close()
-    print(f"Análise concluída. {len(df)} registros foram atualizados no banco de dados.")
 
 if __name__ == "__main__":
     analisar_e_atualizar_despesas()
