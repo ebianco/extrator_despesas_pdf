@@ -20,13 +20,14 @@ def gastos_por_categoria():
     from flask import request
     mes = request.args.get('mes')
     ano = request.args.get('ano')
+    origem = request.args.get('origem')
     
     conn = get_db_connection()
     query = """
         WITH todas_movimentacoes AS (
-            SELECT data, descricao, valor, categoria FROM movimentacoes_bancarias
+            SELECT data, descricao, valor, categoria, 'Extrato Bancário' as origem FROM movimentacoes_bancarias
             UNION ALL
-            SELECT data, descricao, -valor, categoria FROM despesas_cartao
+            SELECT data, descricao, -valor, categoria, 'Cartão de Crédito' as origem FROM despesas_cartao
         )
         SELECT categoria, SUM(valor) as total
         FROM todas_movimentacoes
@@ -40,6 +41,9 @@ def gastos_por_categoria():
         # Assuming mes is '01', '02', etc.
         query += " AND strftime('%m', data) = ?"
         params.append(mes)
+    if origem:
+        query += " AND origem = ?"
+        params.append(origem)
         
     query += """
         GROUP BY categoria
@@ -55,6 +59,8 @@ def despesas_recentes():
     from flask import request
     mes = request.args.get('mes')
     ano = request.args.get('ano')
+
+    origem = request.args.get('origem')
 
     conn = get_db_connection()
     query = """
@@ -74,6 +80,9 @@ def despesas_recentes():
     if mes:
         query += " AND strftime('%m', data) = ?"
         params.append(mes)
+    if origem:
+        query += " AND origem = ?"
+        params.append(origem)
         
     query += """
         ORDER BY data DESC
@@ -88,13 +97,14 @@ def gastos_evolucao_tempo():
     """Fornece dados para o gráfico de evolução de gastos, com meses preenchidos."""
     from flask import request
     ano = request.args.get('ano')
+    origem = request.args.get('origem')
     
     conn = get_db_connection()
     query = """
         WITH todas_movimentacoes AS (
-            SELECT data, descricao, valor, categoria FROM movimentacoes_bancarias
+            SELECT data, descricao, valor, categoria, 'Extrato Bancário' as origem FROM movimentacoes_bancarias
             UNION ALL
-            SELECT data, descricao, -valor as valor, categoria FROM despesas_cartao
+            SELECT data, descricao, -valor as valor, categoria, 'Cartão de Crédito' as origem FROM despesas_cartao
         )
         SELECT 
             strftime('%Y-%m', data) as mes,
@@ -107,6 +117,9 @@ def gastos_evolucao_tempo():
     if ano:
         query += " AND strftime('%Y', data) = ?"
         params.append(ano)
+    if origem:
+        query += " AND origem = ?"
+        params.append(origem)
         
     query += """
         GROUP BY mes, categoria
@@ -140,13 +153,14 @@ def sankey_data():
     from flask import request
     mes = request.args.get('mes')
     ano = request.args.get('ano')
+    origem = request.args.get('origem')
     
     conn = get_db_connection()
     query = """
         WITH todas_movimentacoes AS (
-            SELECT data, descricao, valor, categoria FROM movimentacoes_bancarias
+            SELECT data, descricao, valor, categoria, 'Extrato Bancário' as origem FROM movimentacoes_bancarias
             UNION ALL
-            SELECT data, descricao, -valor as valor, categoria FROM despesas_cartao
+            SELECT data, descricao, -valor as valor, categoria, 'Cartão de Crédito' as origem FROM despesas_cartao
         )
         SELECT categoria, SUM(valor) as total 
         FROM todas_movimentacoes 
@@ -159,6 +173,9 @@ def sankey_data():
     if mes:
         query += " AND strftime('%m', data) = ?"
         params.append(mes)
+    if origem:
+        query += " AND origem = ?"
+        params.append(origem)
         
     query += " GROUP BY categoria"
     df = pd.read_sql_query(query, conn, params=params)

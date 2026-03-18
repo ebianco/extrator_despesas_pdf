@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let currentMonth = '';
     let currentYear = '';
+    let currentOrigem = '';
 
     function showLoader(id) { document.getElementById(id).style.display = 'block'; }
     function hideLoader(id) { document.getElementById(id).style.display = 'none'; }
@@ -50,6 +51,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             updateDashboard();
         });
+
+        document.getElementById('origemFilter').addEventListener('change', function(e) {
+            currentOrigem = e.target.value;
+            updateDashboard();
+        });
     }
 
     function updateDashboard() {
@@ -64,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const params = new URLSearchParams();
         if (currentYear) params.append('ano', currentYear);
         if (currentMonth) params.append('mes', currentMonth);
+        if (currentOrigem) params.append('origem', currentOrigem);
         return params.toString();
     }
 

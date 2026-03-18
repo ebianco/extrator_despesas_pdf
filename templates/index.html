@@ -46,6 +46,11 @@
                 <div class="actions" style="display: flex; align-items: center; gap: 16px;">
                     <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-filter text-secondary"></i>
+                        <select id="origemFilter" class="btn filter-select" style="background-color: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color);">
+                            <option value="">Todas Origens</option>
+                            <option value="Cartão de Crédito">Cartão de Crédito</option>
+                            <option value="Extrato Bancário">Extrato Bancário</option>
+                        </select>
                         <select id="monthFilter" class="btn" style="background-color: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color);">
                             <option value="">Todo o Período</option>
                             <!-- JS vai popular os meses/anos disponíveis -->
