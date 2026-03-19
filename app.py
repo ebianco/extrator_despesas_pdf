@@ -215,12 +215,15 @@ def remover_fatura_associacao(id):
 @app.route('/api/fatura_meses_disponiveis', methods=['GET'])
 def fatura_meses_disponiveis():
     """Retorna os meses disponíveis baseados no vencimento da fatura (tabela totais_fatura_cartao).
-    O valor total vem do 'total_declarado' do cabeçalho do PDF.
+    Filtra meses que já estão associados a algum pagamento no extrato.
+    Se o parâmetro 'except_mov_id' for passado, inclui o mês associado àquela movimentação.
     """
+    from flask import request
+    except_mov_id = request.args.get('except_mov_id')
+    
     conn = get_db_connection()
-    # Busca os meses únicos baseados no vencimento e o total declarado
-    # Faz um sub-select para contar quantos itens pertencem aos arquivos daquele mês de vencimento
-    rows = conn.execute("""
+    
+    query = """
         SELECT 
             strftime('%Y', vencimento) AS ano, 
             strftime('%m', vencimento) AS mes,
@@ -233,9 +236,25 @@ def fatura_meses_disponiveis():
             ) AS qtd
         FROM totais_fatura_cartao t
         WHERE strftime('%Y-%m', vencimento) <= strftime('%Y-%m', 'now')
+          AND (
+              NOT EXISTS (
+                  SELECT 1 FROM fatura_associacao fa 
+                  WHERE fa.fatura_ano = strftime('%Y', t.vencimento) 
+                    AND fa.fatura_mes = strftime('%m', t.vencimento)
+              )
+              OR (
+                  ? IS NOT NULL AND EXISTS (
+                      SELECT 1 FROM fatura_associacao fa2
+                      WHERE fa2.movimentacao_id = ?
+                        AND fa2.fatura_ano = strftime('%Y', t.vencimento)
+                        AND fa2.fatura_mes = strftime('%m', t.vencimento)
+                  )
+              )
+          )
         GROUP BY ano, mes
         ORDER BY ano DESC, mes DESC
-    """).fetchall()
+    """
+    rows = conn.execute(query, (except_mov_id, except_mov_id)).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 

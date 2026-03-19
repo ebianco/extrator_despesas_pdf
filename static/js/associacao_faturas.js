@@ -17,9 +17,11 @@ function mesLabelFromYearMonth(ano, mes) {
     return `${meses[parseInt(mes) - 1]}/${ano}`;
 }
 
-async function loadMesesDisponiveis() {
-    const res = await fetch('/api/fatura_meses_disponiveis');
-    mesesDisponiveis = await res.json();
+async function fetchMesesDisponiveis(exceptMovId = null) {
+    let url = '/api/fatura_meses_disponiveis';
+    if (exceptMovId) url += `?except_mov_id=${exceptMovId}`;
+    const res = await fetch(url);
+    return await res.json();
 }
 
 function buildMesOptions(selectedAno, selectedMes) {
@@ -53,7 +55,7 @@ function renderDiff(row) {
     return `<span class="${cls}">${icon} ${formatCurrency(row.diferenca)}</span>`;
 }
 
-function openEditRow(rowId, pagId, currentAno, currentMes) {
+async function openEditRow(rowId, pagId, currentAno, currentMes) {
     // Remove qualquer edição anterior aberta
     document.querySelectorAll('.edit-expansion-row').forEach(r => r.remove());
     document.querySelectorAll('tr.editing-row').forEach(r => r.classList.remove('editing-row'));
@@ -61,6 +63,9 @@ function openEditRow(rowId, pagId, currentAno, currentMes) {
     const refRow = document.getElementById(`row-${rowId}`);
     if (!refRow) return;
     refRow.classList.add('editing-row');
+
+    // Busca meses disponíveis para esta linha específica
+    mesesDisponiveis = await fetchMesesDisponiveis(pagId);
 
     const editTr = document.createElement('tr');
     editTr.className = 'edit-expansion-row';
@@ -129,7 +134,7 @@ async function loadPage() {
     document.getElementById('tableWrapper').style.display = 'none';
     document.getElementById('emptyMsg').style.display = 'none';
 
-    await loadMesesDisponiveis();
+    // await loadMesesDisponiveis(); // Não precisa carregar na carga inicial mais
 
     const res = await fetch('/api/fatura_associacoes');
     const data = await res.json();
