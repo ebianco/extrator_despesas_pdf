@@ -478,93 +478,69 @@ def api_fluxo_financeiro():
         else:
             return str(ano_i), str(mes_i - 1).zfill(2)
 
-    ano_cartao_inicio, mes_cartao_inicio = mes_anterior(ano_inicio, mes_inicio)
-    ano_cartao_fim, mes_cartao_fim = mes_anterior(ano_fim, mes_fim)
+    # A função mes_anterior será usada dentro do loop para fallbacks se necessário
+    def mes_anterior(ano_str, mes_str):
+        ano_i, mes_i = int(ano_str), int(mes_str)
+        if mes_i == 1:
+            return str(ano_i - 1), '12'
+        else:
+            return str(ano_i), str(mes_i - 1).zfill(2)
 
-    data_cartao_inicio = f"{ano_cartao_inicio}-{mes_cartao_inicio}-01"
-    data_cartao_fim = f"{ano_cartao_fim}-{mes_cartao_fim}-31"
-
-    query_cartao = "SELECT id, data, descricao, categoria, tipo, -valor as valor FROM despesas_cartao WHERE data >= ? AND data <= ?"
-    params_cartao = [data_cartao_inicio, data_cartao_fim]
-    query_cartao += " ORDER BY data ASC"
-    df_cartao = pd.read_sql_query(query_cartao, conn, params=params_cartao)
-    
     conn.close()
     
     bank_txs = df_banco.to_dict(orient='records')
 
-    # 1️⃣ Verifica se há associação explícita no DB para algum dos pagamentos de fatura do mês
-    conn2 = get_db_connection()
-    assoc_por_mov = {}
-    for tx in bank_txs:
-        cat = str(tx.get('categoria', '') or '').upper()
-        tipo = str(tx.get('tipo', '') or '').upper()
-        is_pagamento = (
-            'FINANC' in cat and 'SEGURO' in cat
-            and 'CART' in tipo and 'CREDITO' in tipo.replace('É', 'E').replace('Ê', 'E')
-        )
-        if is_pagamento:
-            row_assoc = conn2.execute(
-                "SELECT fatura_ano, fatura_mes FROM fatura_associacao WHERE movimentacao_id = ?",
-                (tx['id'],)
-            ).fetchone()
-            if row_assoc:
-                assoc_por_mov[tx['id']] = (row_assoc['fatura_ano'], row_assoc['fatura_mes'])
-    conn2.close()
+    # Busca todas as associações do banco para o range de movimentações
+    mov_ids = [tx['id'] for tx in bank_txs]
+    assoc_map = {}
+    if mov_ids:
+        conn_assoc = get_db_connection()
+        placeholders = ', '.join(['?'] * len(mov_ids))
+        query_assoc = f"SELECT movimentacao_id, fatura_ano, fatura_mes FROM fatura_associacao WHERE movimentacao_id IN ({placeholders})"
+        rows_assoc = conn_assoc.execute(query_assoc, mov_ids).fetchall()
+        assoc_map = {r['movimentacao_id']: (r['fatura_ano'], r['fatura_mes']) for r in rows_assoc}
+        conn_assoc.close()
 
-    # 2️⃣ Busca as despesas do cartão — usando associação do DB se existir, senão usa mês anterior
-    fatura_id = None
+    # Processa cada movimentação bancária
     for tx in bank_txs:
-        cat = str(tx.get('categoria', '') or '').upper()
+        tx['children'] = []
+        tx['has_children'] = False
+        
+        # Verifica se o tipo é Cartão de Crédito (normalização robusta)
         tipo = str(tx.get('tipo', '') or '').upper()
-        is_pagamento_fatura = (
-            'FINANC' in cat and 'SEGURO' in cat
-            and 'CART' in tipo and 'CREDITO' in tipo.replace('É', 'E').replace('Ê', 'E')
-        )
-        if is_pagamento_fatura:
-            if tx['id'] in assoc_por_mov:
-                # Usa associação explícita do DB
-                assoc_ano, assoc_mes = assoc_por_mov[tx['id']]
-                d_inicio = f"{assoc_ano}-{assoc_mes.zfill(2)}-01"
-                d_fim = f"{assoc_ano}-{assoc_mes.zfill(2)}-31"
+        
+        # Procura por CART e CREDIT/CREDIT para ser resiliente a acentos (CARTÃO, CRÉDITO)
+        is_cartao = 'CART' in tipo and ('CREDIT' in tipo or 'CREDIT' in tipo.replace('É','E'))
+        
+        if is_cartao:
+            # Busca associação (explícita ou tenta fallback automático se preferir, 
+            # mas conforme solicitado, vamos focar na associação ou padrão)
+            ano_f, mes_f = None, None
+            if tx['id'] in assoc_map:
+                ano_f, mes_f = assoc_map[tx['id']]
             else:
-                # Fallback: mês anterior
-                d_inicio = data_cartao_inicio
-                d_fim = data_cartao_fim
+                # Fallback automático: mês anterior (opcional, mas ajuda se o usuário ainda não associou tudo)
+                ano_f, mes_f = mes_anterior(tx['data'][:4], tx['data'][5:7])
 
-            conn3 = get_db_connection()
-            df_c = pd.read_sql_query(
-                "SELECT id, data, descricao, categoria, tipo, -valor as valor FROM despesas_cartao WHERE data >= ? AND data <= ? ORDER BY data ASC",
-                conn3, params=[d_inicio, d_fim]
-            )
-            conn3.close()
-            cartao_txs_for_tx = df_c.to_dict(orient='records')
+            if ano_f and mes_f:
+                conn_c = get_db_connection()
+                # Busca despesas cujo arquivo de origem tenha vencimento no mês/ano associado
+                query_c = """
+                    SELECT dc.id, dc.data, dc.descricao, dc.categoria, dc.tipo, -dc.valor as valor 
+                    FROM despesas_cartao dc
+                    JOIN totais_fatura_cartao tfc ON dc.fonte_arquivo = tfc.fonte_arquivo
+                    WHERE strftime('%Y', tfc.vencimento) = ? AND strftime('%m', tfc.vencimento) = ?
+                    ORDER BY dc.data ASC
+                """
+                df_c = pd.read_sql_query(query_c, conn_c, params=[ano_f, mes_f.zfill(2)])
+                conn_c.close()
+                
+                if not df_c.empty:
+                    tx['children'] = df_c.to_dict(orient='records')
+                    tx['has_children'] = True
+                    tx['is_fatura'] = True
 
-            fatura_id = tx['id']
-            tx['children'] = cartao_txs_for_tx
-            tx['has_children'] = True
-            tx['is_fatura'] = True
-            break
-
-    if fatura_id is None and len(df_cartao) > 0:
-        cartao_txs = df_cartao.to_dict(orient='records')
-        soma_fatura = sum(c['valor'] for c in cartao_txs)
-        label_mes = f"{mes_cartao_fim}/{ano_cartao_fim}"
-        bank_txs.append({
-            'id': 'virtual_fatura',
-            'data': data_cartao_inicio,
-            'descricao': f'Fatura Cartão {label_mes} (Sem pagamento identificado)',
-            'categoria': 'Cartão de Crédito',
-            'valor': soma_fatura,
-            'children': cartao_txs,
-            'has_children': True,
-            'is_virtual': True
-        })
-
-    for tx in bank_txs:
-        if 'children' not in tx:
-            tx['children'] = []
-            tx['has_children'] = False
+    # O anterior já inicializa children e has_children para todas as transações
 
     return jsonify({
         'data': bank_txs,
