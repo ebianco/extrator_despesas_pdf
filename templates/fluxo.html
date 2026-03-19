@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fluxo Financeiro | FinSight</title>
+    <!-- Google Fonts: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .toolbar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .filter-select { padding: 12px 16px; background-color: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); color: var(--text-primary); font-size: 14px; cursor: pointer; }
+        
+        .tree-table th, .tree-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); }
+        .tree-table th { background-color: var(--bg-surface-hover); color: var(--text-secondary); font-weight: 500; text-align: left; }
+        .tree-table td { color: var(--text-primary); }
+        
+        .row-parent { background-color: var(--bg-surface); font-weight: 500; transition: background-color 0.2s; }
+        .row-parent.clickable { cursor: pointer; }
+        .row-parent.clickable:hover { background-color: var(--bg-surface-hover); }
+        
+        .row-child { background-color: rgba(0, 0, 0, 0.2); font-size: 0.95em; display: none; }
+        .row-child td:first-child { padding-left: 20px; border-left: 2px solid var(--accent-primary); }
+        .row-child td:nth-child(2) { padding-left: 32px; } /* Recuo na descrição */
+        
+        .clickable-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .clickable-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+        .expand-icon { width: 24px; display: inline-block; text-align: center; color: var(--text-secondary); font-size: 12px; }
+        .expanded .fa-plus { display: none; }
+        .expanded .fa-minus { display: inline-block !important; }
+        .collapsed .fa-minus { display: none; }
+        .collapsed .fa-plus { display: inline-block !important; }
+        
+        .val-positive { color: var(--success-color); }
+        .val-negative { color: var(--danger-color); }
+    </style>
+</head>
+<body>
+    <script>
+        if (localStorage.getItem('sidebar-collapsed') === 'true') {
+            document.body.classList.add('sidebar-collapsed');
+        }
+    </script>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-wallet gradient-icon"></i>
+                <h2>FinSight</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('index') }}" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Visualização Geral</a>
+                <a href="{{ url_for('transacoes') }}" class="nav-item"><i class="fa-solid fa-money-bill-transfer"></i> Transações</a>
+                <a href="{{ url_for('fluxo') }}" class="nav-item active"><i class="fa-solid fa-sitemap"></i> Fluxo Financeiro</a>
+                <a href="{{ url_for('consulta_db') }}" class="nav-item"><i class="fa-solid fa-database"></i> Consultar DB</a>
+                <a href="{{ url_for('auditoria') }}" class="nav-item"><i class="fa-solid fa-clipboard-check"></i> Auditoria</a>
+                <a href="{{ url_for('categorias_tipos') }}" class="nav-item"><i class="fa-solid fa-tags"></i> Tipos e Categorias</a>
+                <a href="{{ url_for('associacao_faturas') }}" class="nav-item"><i class="fa-solid fa-link"></i> Associação de Faturas</a>
+                <a href="{{ url_for('validacao_cartao') }}" class="nav-item"><i class="fa-solid fa-magnifying-glass-chart"></i> Validação de Faturas</a>
+                <a href="#" class="nav-item" onclick="alert('Em breve: Aba de Metas')"><i class="fa-solid fa-bullseye"></i> Metas</a>
+                <a href="#" class="nav-item" onclick="alert('Em breve: Configurações')"><i class="fa-solid fa-gear"></i> Configurações</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Eduardo+Bianco&background=0D8ABC&color=fff" alt="User" class="avatar">
+                    <div class="user-info">
+                        <span class="name">Eduardo Bianco</span>
+                        <span class="plan">Premium User</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button id="sidebarToggle" title="Recolher Sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="greeting">
+                        <h1>Fluxo Financeiro Hierárquico</h1>
+                        <p>Visão consolidada do extrato bancário com aprofundamento (drill-down) no cartão de crédito.</p>
+                    </div>
+                </div>
+            </header>
+
+            <div class="card">
+                <div class="card-body">
+                    
+                    <div class="toolbar" style="align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="startMonthFilter" style="font-size: 14px; color: var(--text-secondary);">De:</label>
+                            <select id="startMonthFilter" class="filter-select">
+                                <option value="">Início</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="endMonthFilter" style="font-size: 14px; color: var(--text-secondary);">Até:</label>
+                            <select id="endMonthFilter" class="filter-select">
+                                <option value="">Fim</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div class="summary-cards" id="summaryCards" style="display:none; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                        <div class="stat-card" style="padding: 16px; background: var(--bg-surface-hover); border-radius: 8px; border-left: 4px solid var(--text-secondary);">
+                            <div style="font-size: 12px; color: var(--text-secondary);">Saldo Inicial</div>
+                            <div id="sumSaldoInicial" style="font-size: 20px; font-weight: 600; margin-top: 4px;">R$ 0,00</div>
+                        </div>
+                        <div class="stat-card clickable-card" id="cardCreditos" style="padding: 16px; background: var(--bg-surface-hover); border-radius: 8px; border-left: 4px solid var(--success-color);">
+                            <div style="font-size: 12px; color: var(--text-secondary);">Total Créditos <i class="fa-solid fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></div>
+                            <div id="sumCreditos" class="val-positive" style="font-size: 20px; font-weight: 600; margin-top: 4px;">R$ 0,00</div>
+                        </div>
+                        <div class="stat-card clickable-card" id="cardDebitos" style="padding: 16px; background: var(--bg-surface-hover); border-radius: 8px; border-left: 4px solid var(--danger-color);">
+                            <div style="font-size: 12px; color: var(--text-secondary);">Total Débitos <i class="fa-solid fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></div>
+                            <div id="sumDebitos" class="val-negative" style="font-size: 20px; font-weight: 600; margin-top: 4px;">R$ 0,00</div>
+                        </div>
+                        <div class="stat-card" style="padding: 16px; background: var(--bg-surface-hover); border-radius: 8px; border-left: 4px solid var(--accent-primary);">
+                            <div style="font-size: 12px; color: var(--text-secondary);">Saldo Final</div>
+                            <div id="sumSaldoFinal" style="font-size: 20px; font-weight: 600; margin-top: 4px;">R$ 0,00</div>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown Panel -->
+                    <div id="breakdownPanel" style="display:none; background: var(--bg-surface-hover); padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--border-color);">
+                         <h4 id="breakdownTitle" style="margin-top: 0; margin-bottom: 12px; color: var(--text-primary); font-size: 14px;">Detalhamento por Categoria</h4>
+                         <div id="breakdownContent" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                         </div>
+                    </div>
+
+                    <div class="loader" id="tableLoader" style="position:relative; transform:none; left:auto; top:auto; margin:40px auto; display:none;"></div>
+
+                    <div class="table-responsive">
+                        <table class="modern-table tree-table" id="fluxoTable" style="display:none; width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">ID</th>
+                                    <th>Data</th>
+                                    <th>Descrição / Origem</th>
+                                    <th>Categoria</th>
+                                    <th>Tipo</th>
+                                    <th style="text-align: right;">Valor (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fluxoTbody">
+                                <!-- Preenchido via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/fluxo.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
+</body>
+</html>

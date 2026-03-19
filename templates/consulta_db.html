@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Dashboard | Extrator PDF</title>
+    <title>Consulta Direta DB | FinSight</title>
     <!-- Google Fonts: Outfit -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 </head>
 <body>
     <script>
@@ -25,10 +24,10 @@
                 <h2>FinSight</h2>
             </div>
             <nav class="sidebar-nav">
-                <a href="{{ url_for('index') }}" class="nav-item active"><i class="fa-solid fa-chart-pie"></i> Visualização Geral</a>
+                <a href="{{ url_for('index') }}" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Visualização Geral</a>
                 <a href="{{ url_for('transacoes') }}" class="nav-item"><i class="fa-solid fa-money-bill-transfer"></i> Transações</a>
                 <a href="{{ url_for('fluxo') }}" class="nav-item"><i class="fa-solid fa-sitemap"></i> Fluxo Financeiro</a>
-                <a href="{{ url_for('consulta_db') }}" class="nav-item"><i class="fa-solid fa-database"></i> Consultar DB</a>
+                <a href="{{ url_for('consulta_db') }}" class="nav-item active"><i class="fa-solid fa-database"></i> Consultar DB</a>
                 <a href="{{ url_for('auditoria') }}" class="nav-item"><i class="fa-solid fa-clipboard-check"></i> Auditoria</a>
                 <a href="{{ url_for('categorias_tipos') }}" class="nav-item"><i class="fa-solid fa-tags"></i> Tipos e Categorias</a>
                 <a href="{{ url_for('associacao_faturas') }}" class="nav-item"><i class="fa-solid fa-link"></i> Associação de Faturas</a>
@@ -55,82 +54,63 @@
                         <i class="fa-solid fa-bars"></i>
                     </button>
                     <div class="greeting">
-                        <h1>Dashboard Financeiro</h1>
-                        <p>Aqui está o resumo das suas despesas e receitas.</p>
+                        <h1>Consulta Direta ao Banco de Dados</h1>
+                        <p>Visualize todos os registros e colunas do seu banco de dados.</p>
                     </div>
                 </div>
                 <div class="actions" style="display: flex; align-items: center; gap: 16px;">
                     <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-filter text-secondary"></i>
                         <select id="origemFilter" class="btn filter-select" style="background-color: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color);">
-                            <option value="">Todas Origens</option>
-                            <option value="Cartão de Crédito">Cartão de Crédito</option>
                             <option value="Extrato Bancário">Extrato Bancário</option>
+                            <option value="Cartão de Crédito">Cartão de Crédito</option>
                         </select>
                         <select id="monthFilter" class="btn" style="background-color: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color);">
-                            <option value="">Todo o Período</option>
-                            <!-- JS vai popular os meses/anos disponíveis -->
+                            <!-- JS vai popular -->
                         </select>
                     </div>
-                    <button class="btn btn-icon"><i class="fa-regular fa-bell"></i></button>
-                    <button class="btn btn-primary"><i class="fa-solid fa-upload"></i> Novo PDF</button>
+                    <button id="btnConsultar" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i> Consultar</button>
                 </div>
             </header>
 
-            <!-- Dashboard Widgets -->
             <div class="dashboard-grid">
-                <!-- Evolution Chart -->
-                <div class="card col-span-2">
-                    <div class="card-header">
-                        <h3><i class="fa-solid fa-chart-line text-purple"></i> Evolução no Tempo</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="evolucaoChart" class="chart-wrapper"></div>
-                        <div class="loader" id="loaderEvolucao"></div>
-                    </div>
-                </div>
-
-                <!-- Sankey Chart -->
-                <div class="card col-span-2">
-                    <div class="card-header">
-                        <h3><i class="fa-solid fa-shuffle text-cyan"></i> Fluxo de Renda e Despesas</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="sankey_chart" class="chart-wrapper" style="height: 400px;"></div>
-                        <div class="loader" id="loaderSankey"></div>
+                <!-- Balances Row -->
+                <div class="card col-span-2" id="saldosCard" style="display: none;">
+                    <div class="card-body" style="display: flex; justify-content: space-around; padding: 20px;">
+                        <div class="balance-item">
+                            <span class="text-secondary">Saldo Inicial</span>
+                            <h2 id="saldoInicial" class="text-primary">-</h2>
+                        </div>
+                        <div class="balance-item">
+                            <span class="text-secondary">Saldo Final</span>
+                            <h2 id="saldoFinal" class="text-primary">-</h2>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Recent Transactions -->
+                <!-- Results Table -->
                 <div class="card col-span-2">
-                    <div class="card-header">
-                        <h3><i class="fa-solid fa-list-ul text-green"></i> Despesas Recentes</h3>
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3><i class="fa-solid fa-table text-blue"></i> Registros Encontrados</h3>
+                        <span id="recordCount" class="badge">0 registros</span>
                     </div>
                     <div class="card-body table-responsive">
-                        <table id="despesasTable" class="modern-table">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Descrição</th>
-                                    <th>Categoria</th>
-                                    <th>Tipo</th>
-                                    <th>Origem</th>
-                                    <th>Valor (R$)</th>
-                                </tr>
+                        <table id="resultsTable" class="modern-table">
+                            <thead id="tableHead">
+                                <!-- JS vai popular as colunas dinamicamente -->
                             </thead>
-                            <tbody>
+                            <tbody id="tableBody">
                                 <!-- JS vai popular -->
                             </tbody>
                         </table>
+                        <div class="loader" id="loader"></div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Modals or overlays could go here -->
-    
     <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/consulta_db.js') }}"></script>
 </body>
 </html>

@@ -58,6 +58,12 @@ body {
     position: fixed;
     height: 100vh;
     z-index: 10;
+    transition: transform var(--transition-normal);
+}
+
+/* Sidebar Collapsed State */
+body.sidebar-collapsed .sidebar {
+    transform: translateX(-100%);
 }
 
 .sidebar-header {
@@ -161,6 +167,12 @@ body {
     display: flex;
     flex-direction: column;
     gap: 32px;
+    min-width: 0; /* Flexbox fix for inner scrolling */
+    transition: margin-left var(--transition-normal);
+}
+
+body.sidebar-collapsed .main-content {
+    margin-left: 0;
 }
 
 /* Topbar */
@@ -211,6 +223,33 @@ body {
 
 .btn-icon:hover {
     background-color: var(--bg-surface-hover);
+}
+
+/* Toggle Button in Topbar */
+#sidebarToggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: var(--transition-fast);
+    margin-right: 16px;
+    flex-shrink: 0;
+}
+
+#sidebarToggle:hover {
+    background: var(--bg-surface-hover);
+    color: var(--accent-primary);
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
 }
 
 .btn-primary {
@@ -282,11 +321,15 @@ body {
 /* Table */
 .table-responsive {
     overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
 }
 
 .modern-table {
     width: 100%;
     border-collapse: collapse;
+    white-space: nowrap;
 }
 
 .modern-table th {

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Categorias e Tipos | FinSight</title>
+    <!-- Google Fonts: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-actions {
+            margin-bottom: 24px;
+        }
+        .text-right {
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        if (localStorage.getItem('sidebar-collapsed') === 'true') {
+            document.body.classList.add('sidebar-collapsed');
+        }
+    </script>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-wallet gradient-icon"></i>
+                <h2>FinSight</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('index') }}" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Visualização Geral</a>
+                <a href="{{ url_for('transacoes') }}" class="nav-item"><i class="fa-solid fa-money-bill-transfer"></i> Transações</a>
+                <a href="{{ url_for('fluxo') }}" class="nav-item"><i class="fa-solid fa-sitemap"></i> Fluxo Financeiro</a>
+                <a href="{{ url_for('consulta_db') }}" class="nav-item"><i class="fa-solid fa-database"></i> Consultar DB</a>
+                <a href="{{ url_for('auditoria') }}" class="nav-item"><i class="fa-solid fa-clipboard-check"></i> Auditoria</a>
+                <a href="{{ url_for('categorias_tipos') }}" class="nav-item active"><i class="fa-solid fa-tags"></i> Tipos e Categorias</a>
+                <a href="{{ url_for('associacao_faturas') }}" class="nav-item"><i class="fa-solid fa-link"></i> Associação de Faturas</a>
+                <a href="{{ url_for('validacao_cartao') }}" class="nav-item"><i class="fa-solid fa-magnifying-glass-chart"></i> Validação de Faturas</a>
+                <a href="#" class="nav-item" onclick="alert('Em breve: Aba de Metas')"><i class="fa-solid fa-bullseye"></i> Metas</a>
+                <a href="#" class="nav-item" onclick="alert('Em breve: Configurações')"><i class="fa-solid fa-gear"></i> Configurações</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Eduardo+Bianco&background=0D8ABC&color=fff" alt="User" class="avatar">
+                    <div class="user-info">
+                        <span class="name">Eduardo Bianco</span>
+                        <span class="plan">Premium User</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button id="sidebarToggle" title="Recolher Sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="greeting">
+                        <h1>Manutenção de Categorias e Tipos</h1>
+                        <p>Associe os Tipos de despesas às suas respectivas Categorias.</p>
+                    </div>
+                </div>
+            </header>
+
+            <div class="card mt-4">
+                <div class="card-header flex-between">
+                    <h3>Pares Cadastrados</h3>
+                    <button class="btn btn-primary" onclick="openModal()"><i class="fa-solid fa-plus"></i> Novo Mapeamento</button>
+                </div>
+                <div class="card-body table-responsive">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th>Tipo</th>
+                                <th class="text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-categorias">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div id="modalCategoria" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+        <div class="modal-content" style="background-color:var(--bg-card); padding:20px; border-radius:var(--border-radius-md); max-width: 400px; width:100%;">
+            <div class="modal-header flex-between">
+                <h3 style="margin:0;"><span id="modalTitle">Novo Mapeamento</span></h3>
+                <span class="close" onclick="closeModal()" style="cursor:pointer; font-size:24px;">&times;</span>
+            </div>
+            <div class="modal-body" style="margin-top:20px;">
+                <div class="form-group" style="margin-bottom:15px;">
+                    <label style="display:block; margin-bottom:5px;">Categoria</label>
+                    <input type="text" id="inputCategoria" class="form-control" placeholder="Ex: Moradia" style="width:100%; padding:10px; background:var(--bg-surface); border:1px solid var(--border-color); color:white; border-radius:4px;">
+                </div>
+                <div class="form-group">
+                    <label style="display:block; margin-bottom:5px;">Tipo</label>
+                    <input type="text" id="inputTipo" class="form-control" placeholder="Ex: Aluguel" style="width:100%; padding:10px; background:var(--bg-surface); border:1px solid var(--border-color); color:white; border-radius:4px;">
+                </div>
+            </div>
+            <div class="modal-footer text-right" style="margin-top:20px;">
+                <button class="btn btn-secondary" onclick="closeModal()" style="margin-right:10px;">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarMapeamento()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", carregarCategorias);
+
+        async function carregarCategorias() {
+            try {
+                const response = await fetch('/api/categorias_tipos');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('tabela-categorias');
+                tbody.innerHTML = '';
+                
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${item.categoria}</strong></td>
+                        <td>${item.tipo}</td>
+                        <td class="text-right">
+                            <button class="btn btn-icon text-danger" onclick="removerMapeamento(${item.id})">
+                                <i class="fa-solid fa-trash" style="color:var(--semantic-error);"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar mapeamentos:', error);
+            }
+        }
+
+        function openModal() {
+            document.getElementById('inputCategoria').value = '';
+            document.getElementById('inputTipo').value = '';
+            document.getElementById('modalCategoria').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modalCategoria').style.display = 'none';
+        }
+
+        async function salvarMapeamento() {
+            const categoria = document.getElementById('inputCategoria').value.trim();
+            const tipo = document.getElementById('inputTipo').value.trim();
+
+            if(!categoria || !tipo) {
+                alert("Preencha ambos os campos!");
+                return;
+            }
+
+            try {
+                const result = await fetch('/api/categorias_tipos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ categoria, tipo })
+                });
+
+                if(result.ok) {
+                    closeModal();
+                    carregarCategorias();
+                } else {
+                    const err = await result.json();
+                    alert(err.error || "Erro ao salvar");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Erro fatal ao salvar.");
+            }
+        }
+
+        async function removerMapeamento(id) {
+            if(!confirm("Tem certeza que deseja remover este mapeamento? O histórico de transações não será apagado, mas novas não serão inferidas.")) return;
+            
+            try {
+                await fetch(`/api/categorias_tipos/${id}`, { method: 'DELETE' });
+                carregarCategorias();
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao remover");
+            }
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
+</body>
+</html>

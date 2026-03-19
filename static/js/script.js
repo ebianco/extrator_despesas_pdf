@@ -121,7 +121,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 dataTable.addColumn('number', 'Valor');
 
                 // Garante valores positivos no Sankey para não quebrar o gráfico Google
-                const processedData = data.map(item => [item[0], item[1], Math.abs(item[2])]);
+                // item[0]=fonte, item[1]=destino, item[2]=tipo, item[3]=valor
+                const processedData = data.map(item => [item[0], item[1], Math.abs(item[3])]);
                 dataTable.addRows(processedData);
 
                 var colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
@@ -241,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tableBody.innerHTML = ''; 
             
             if (data.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">Nenhuma despesa recente encontrada.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#94a3b8;">Nenhuma despesa recente encontrada.</td></tr>';
                 return;
             }
 
@@ -258,13 +259,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Categoria (Badge)
                 row.insertCell(2).innerHTML = getCategoryBadge(item.categoria);
                 
+                // Tipo
+                let tipoCell = row.insertCell(3);
+                tipoCell.innerHTML = `<span style="font-size:13px; color:#94a3b8;">${item.tipo || '-'}</span>`;
+                
                 // Origem (Cartão de Crédito ou Extrato Bancário)
-                let origemCell = row.insertCell(3);
+                let origemCell = row.insertCell(4);
                 let origemIcon = item.origem.includes('Cartão') ? '<i class="fa-regular fa-credit-card text-purple"></i>' : '<i class="fa-solid fa-building-columns text-cyan"></i>';
                 origemCell.innerHTML = `<span style="display:flex; align-items:center; gap:8px; font-size:13px;">${origemIcon} ${item.origem}</span>`;
                 
                 // Valor
-                let valCell = row.insertCell(4);
+                let valCell = row.insertCell(5);
                 const valorNum = parseFloat(item.valor);
                 valCell.innerHTML = `<span class="${valorNum > 0 ? 'val-negative' : 'val-positive'}">${formatCurrency(Math.abs(valorNum))}</span>`;
             });

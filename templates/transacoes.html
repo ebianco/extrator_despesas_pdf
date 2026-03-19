@@ -95,9 +95,46 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        /* Sortable styles */
+        .modern-table th.sortable {
+            cursor: pointer;
+            position: relative;
+            padding-right: 30px;
+            user-select: none;
+        }
+
+        .modern-table th.sortable:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .modern-table th.sortable i.sort-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: var(--text-secondary);
+            opacity: 0.3;
+            transition: var(--transition-fast);
+        }
+
+        .modern-table th.sortable:hover i.sort-icon {
+            opacity: 0.7;
+        }
+
+        .modern-table th.sortable.active i.sort-icon {
+            opacity: 1;
+            color: var(--accent-primary);
+        }
     </style>
 </head>
 <body>
+    <script>
+        if (localStorage.getItem('sidebar-collapsed') === 'true') {
+            document.body.classList.add('sidebar-collapsed');
+        }
+    </script>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -108,6 +145,12 @@
             <nav class="sidebar-nav">
                 <a href="{{ url_for('index') }}" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Visualização Geral</a>
                 <a href="{{ url_for('transacoes') }}" class="nav-item active"><i class="fa-solid fa-money-bill-transfer"></i> Transações</a>
+                <a href="{{ url_for('fluxo') }}" class="nav-item"><i class="fa-solid fa-sitemap"></i> Fluxo Financeiro</a>
+                <a href="{{ url_for('consulta_db') }}" class="nav-item"><i class="fa-solid fa-database"></i> Consultar DB</a>
+                <a href="{{ url_for('auditoria') }}" class="nav-item"><i class="fa-solid fa-clipboard-check"></i> Auditoria</a>
+                <a href="{{ url_for('categorias_tipos') }}" class="nav-item"><i class="fa-solid fa-tags"></i> Tipos e Categorias</a>
+                <a href="{{ url_for('associacao_faturas') }}" class="nav-item"><i class="fa-solid fa-link"></i> Associação de Faturas</a>
+                <a href="{{ url_for('validacao_cartao') }}" class="nav-item"><i class="fa-solid fa-magnifying-glass-chart"></i> Validação de Faturas</a>
                 <a href="#" class="nav-item" onclick="alert('Em breve: Aba de Metas')"><i class="fa-solid fa-bullseye"></i> Metas</a>
                 <a href="#" class="nav-item" onclick="alert('Em breve: Configurações')"><i class="fa-solid fa-gear"></i> Configurações</a>
             </nav>
@@ -125,9 +168,14 @@
         <!-- Main Content -->
         <main class="main-content">
             <header class="topbar">
-                <div class="greeting">
-                    <h1>Sujas Transações</h1>
-                    <p>Pesquise, filtre e audite todas as suas movimentações.</p>
+                <div class="topbar-left">
+                    <button id="sidebarToggle" title="Recolher Sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="greeting">
+                        <h1>Suas Transações</h1>
+                        <p>Pesquise, filtre e audite todas as suas movimentações.</p>
+                    </div>
                 </div>
             </header>
 
@@ -144,22 +192,18 @@
                         
                         <select id="categoriaFilter" class="filter-select">
                             <option value="">Todas Categorias</option>
-                            <option value="Refeição">Refeição</option>
-                            <option value="Transporte">Transporte</option>
-                            <option value="Saúde">Saúde</option>
-                            <option value="Lazer">Lazer</option>
-                            <option value="Casa">Casa</option>
-                            <option value="Vestuário">Vestuário</option>
-                            <option value="Cuidados Pessoais">Cuidados Pessoais</option>
-                            <option value="Bens de consumo">Bens de Consumo</option>
-                            <option value="Pet">Pet</option>
-                            <option value="TBD">Pendentes (TBD)</option>
+                            <!-- Populado dinamicamente -->
                         </select>
                         
                         <select id="origemFilter" class="filter-select">
                             <option value="">Todas Origens</option>
                             <option value="Cartão de Crédito">Cartão de Crédito</option>
                             <option value="Extrato Bancário">Extrato Bancário</option>
+                        </select>
+
+                        <select id="tipoFilter" class="filter-select">
+                            <option value="">Todos Tipos</option>
+                            <!-- Populado dinamicamente -->
                         </select>
 
                         <select id="monthFilter" class="filter-select">
@@ -175,11 +219,12 @@
                         <table id="transacoesTable" class="modern-table" style="display:none;">
                             <thead>
                                 <tr>
-                                    <th>Data</th>
-                                    <th>Descrição</th>
-                                    <th>Categoria</th>
-                                    <th>Origem</th>
-                                    <th>Valor (R$)</th>
+                                    <th class="sortable active" data-sort="data">Data <i class="fa-solid fa-sort-down sort-icon"></i></th>
+                                    <th class="sortable" data-sort="descricao">Descrição <i class="fa-solid fa-sort sort-icon"></i></th>
+                                    <th class="sortable" data-sort="categoria">Categoria <i class="fa-solid fa-sort sort-icon"></i></th>
+                                    <th class="sortable" data-sort="tipo">Tipo <i class="fa-solid fa-sort sort-icon"></i></th>
+                                    <th class="sortable" data-sort="origem">Origem <i class="fa-solid fa-sort sort-icon"></i></th>
+                                    <th class="sortable" data-sort="valor">Valor (R$) <i class="fa-solid fa-sort sort-icon"></i></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -203,5 +248,6 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/transacoes.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
 </body>
 </html>
